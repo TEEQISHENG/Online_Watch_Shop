@@ -1,111 +1,75 @@
 <?php
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/config/functions.php';
-$page_title = 'Shop';
-$category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
-$search = trim($_GET['search'] ?? '');
-$sort = $_GET['sort'] ?? 'name_asc';
-$condition = trim($_GET['condition'] ?? '');
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/functions.php';
+require_admin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $product_name = trim($_POST['product_name'] ?? '');
+    $category_id = (int)($_POST['category_id'] ?? 0);
+    $description = trim($_POST['description'] ?? '');
+    $price = (float)($_POST['price'] ?? 0);
+    $stock_quantity = (int)($_POST['stock_quantity'] ?? 0);
+    $item_condition = trim($_POST['item_condition'] ?? 'New');
+    if (!in_array($item_condition, ['New', 'Pre-Owned'])) { $item_condition = 'New'; }
+    $image_url = trim($_POST['image_url'] ?? '');
+    if ($product_name !== '' && $category_id > 0 && $price > 0) {
+        $stmt = $pdo->prepare("INSERT INTO products (category_id, product_name, description, price, stock_quantity, item_condition, image_url, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)");
+        $stmt->execute([$category_id, $product_name, $description, $price, $stock_quantity, $item_condition, $image_url]);
+        set_flash('green', 'Product added successfully.');
+        header('Location: products.php');
+        exit;
+    }
+}
 $categories = $pdo->query("SELECT * FROM categories ORDER BY category_name ASC")->fetchAll();
-
-$where = ["p.is_active = 1"];
-$params = [];
-if ($category_id > 0) {
-    $where[] = "p.category_id = ?";
-    $params[] = $category_id;
-}
-if ($condition !== '' && in_array($condition, ['New', 'Pre-Owned'])) {
-    $where[] = "p.item_condition = ?";
-    $params[] = $condition;
-}
-if ($search !== '') {
-    $where[] = "(p.product_name LIKE ? OR p.description LIKE ? OR c.category_name LIKE ?)";
-    $like = '%' . $search . '%';
-    array_push($params, $like, $like, $like);
-}
-
-$orderSql = "p.product_name ASC";
-switch ($sort) {
-    case 'price_asc': $orderSql = 'p.price ASC'; break;
-    case 'price_desc': $orderSql = 'p.price DESC'; break;
-    case 'stock_desc': $orderSql = 'p.stock_quantity DESC'; break;
-    case 'latest': $orderSql = 'p.id DESC'; break;
-}
-
-$sql = "SELECT p.*, c.category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE " . implode(' AND ', $where) . " ORDER BY $orderSql";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$products = $stmt->fetchAll();
-include __DIR__ . '/includes/header.php';
+$products = $pdo->query("SELECT p.*, c.category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id ASC")->fetchAll();
+$page_title = 'Manage Products';
+include __DIR__ . '/../includes/header.php';
 ?>
-<section class="shop-hero surface">
-    <div>
-        <span class="badge-source">30+ curated watches</span>
-        <h1 class="page-headline shop-title">Find your next watch</h1>
-        <p>Browse new and pre-owned watches across luxury, sports, classic, women’s and smart categories. The catalog has been reorganized with cleaner cards, steadier spacing and more store-like presentation.</p>
-    </div>
-    <div class="shop-hero-note">
-        <strong>What you can filter:</strong>
-        <span>Brand or model search · Category · Condition · Price sorting</span>
-    </div>
-</section>
-
-<section class="toolbar toolbar-premium">
-    <form method="get" class="toolbar-form toolbar-form-premium">
-        <input class="input" type="text" name="search" placeholder="Search brand, model or category" value="<?php echo h($search); ?>">
-        <select class="input" name="category_id">
-            <option value="0">All categories</option>
-            <?php foreach ($categories as $cat): ?>
-                <option value="<?php echo (int)$cat['id']; ?>" <?php echo $category_id === (int)$cat['id'] ? 'selected' : ''; ?>><?php echo h($cat['category_name']); ?></option>
-            <?php endforeach; ?>
-        </select>
-        <select class="input" name="condition">
-            <option value="">All conditions</option>
-            <option value="New" <?php echo $condition === 'New' ? 'selected' : ''; ?>>New</option>
-            <option value="Pre-Owned" <?php echo $condition === 'Pre-Owned' ? 'selected' : ''; ?>>Pre-Owned</option>
-        </select>
-        <select class="input" name="sort">
-            <option value="name_asc" <?php echo $sort === 'name_asc' ? 'selected' : ''; ?>>Sort: Name</option>
-            <option value="latest" <?php echo $sort === 'latest' ? 'selected' : ''; ?>>Newest first</option>
-            <option value="price_asc" <?php echo $sort === 'price_asc' ? 'selected' : ''; ?>>Price low to high</option>
-            <option value="price_desc" <?php echo $sort === 'price_desc' ? 'selected' : ''; ?>>Price high to low</option>
-            <option value="stock_desc" <?php echo $sort === 'stock_desc' ? 'selected' : ''; ?>>Highest stock</option>
-        </select>
-        <button class="btn-dark" type="submit">Apply filters</button>
-    </form>
-</section>
-
 <div class="section-header">
     <div>
-        <h2><?php echo count($products); ?> products found</h2>
-        <p>Every card now follows the same visual structure so the storefront looks more polished and consistent.</p>
+        <h1 class="page-headline" style="font-size:40px;">Manage products</h1>
+        <p>Add or review product data used by the storefront.</p>
     </div>
 </div>
-
-<div class="product-grid product-grid-shop">
-<?php foreach ($products as $row): ?>
-    <article class="product-card product-card-shop">
-        <div class="product-media product-media-shop">
-            <img src="<?php echo product_image_url($row['image_url']); ?>" alt="<?php echo h($row['product_name']); ?>">
+<div class="checkout-grid">
+    <section class="form-card">
+        <h2>Add product</h2>
+        <form method="post">
+            <div class="form-grid">
+                <p><input class="input" type="text" name="product_name" placeholder="Product Name" required></p>
+                <p>
+                    <select class="input" name="category_id" required>
+                        <option value="">Select Category</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo (int)$cat['id']; ?>"><?php echo h($cat['category_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </p>
+                <p><input class="input" type="number" step="0.01" name="price" placeholder="Price" required></p>
+                <p><input class="input" type="number" name="stock_quantity" placeholder="Stock Quantity" required></p>
+                <p><select class="input" name="item_condition"><option value="New">New</option><option value="Pre-Owned">Pre-Owned</option></select></p>
+            </div>
+            <p><textarea class="input" name="description" placeholder="Description"></textarea></p>
+            <p><input class="input" type="text" name="image_url" placeholder="Image URL or local path"></p>
+            <button class="btn-dark" type="submit">Save product</button>
+        </form>
+    </section>
+    <section class="table-card">
+        <h2>Catalog overview</h2>
+        <div class="table-scroll">
+            <table class="w3-table-all">
+                <tr><th>ID</th><th>Name</th><th>Category</th><th>Condition</th><th>Price</th><th>Stock</th></tr>
+                <?php foreach ($products as $product): ?>
+                <tr>
+                    <td><?php echo (int)$product['id']; ?></td>
+                    <td><?php echo h($product['product_name']); ?></td>
+                    <td><?php echo h($product['category_name']); ?></td>
+                    <td><?php echo h($product['item_condition'] ?? 'New'); ?></td>
+                    <td>RM <?php echo number_format($product['price'], 2); ?></td>
+                    <td><?php echo (int)$product['stock_quantity']; ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
         </div>
-        <div class="product-body product-body-shop">
-            <div class="product-topline">
-                <span class="badge-pill"><?php echo h($row['category_name']); ?></span>
-                <?php echo condition_badge($row['item_condition'] ?? 'New'); ?>
-            </div>
-            <h3 class="product-title"><?php echo h($row['product_name']); ?></h3>
-            <div class="product-model"><?php echo h(product_tagline($row['product_name'], $row['category_name'], $row['item_condition'] ?? 'New')); ?></div>
-            <p class="product-description"><?php echo h($row['description']); ?></p>
-            <div class="product-service-row">
-                <span>Stock <?php echo (int)$row['stock_quantity']; ?></span>
-                <span><?php echo strtolower($row['item_condition']) === 'pre-owned' ? 'Condition checked' : 'Ready to ship'; ?></span>
-            </div>
-            <div class="product-card-bottom">
-                <div class="product-price">RM <?php echo number_format($row['price'], 2); ?></div>
-                <a href="product_details.php?id=<?php echo (int)$row['id']; ?>" class="btn-dark">View details</a>
-            </div>
-        </div>
-    </article>
-<?php endforeach; ?>
+    </section>
 </div>
-<?php include __DIR__ . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>
