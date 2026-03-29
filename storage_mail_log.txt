@@ -1,0 +1,27 @@
+Reset Password Request
+To: qisheng0303@gmail.com
+Name: TEE QI SHENG
+Reset link: /Online_Watch_Shop/reset_password.php?token=724df8c630f9b0f9cbef09da253e7e94&email=qisheng0303%40gmail.com
+This link expires in 30 minutes.
+------------------------------------------------------------
+Reset Password Request
+To: qisheng0303@gmail.com
+Name: TEE QI SHENG
+Reset link: /Online_Watch_Shop/reset_password.php?token=c377a2575ff08347e8d63edf5a0d7f4c&email=qisheng0303%40gmail.com
+This link expires in 30 minutes.
+------------------------------------------------------------
+[2026-03-26 10:11:25] To: qisheng0303@gmail.com
+Reset Password Request
+
+Hello TEE QI SHENG,
+
+We received a request to reset your TimePiece Gallery password.
+Open the link below to continue:
+/Online_Watch_Shop/reset_password.php?token=e48ad234f3886dba55994b47ebc656c265dde12618b2ac93&email=qisheng0303%40gmail.com
+
+This link will expire in 1 hour.
+
+If you did not request this, you can ignore this email.
+
+SMTP Error: SMTP mail is not configured yet.
+--------------------------

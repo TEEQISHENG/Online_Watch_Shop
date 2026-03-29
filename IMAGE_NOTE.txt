@@ -1,0 +1,5 @@
+
+This package includes locally generated boutique-style watch visuals for all seeded products.
+The site remains a web-based system suitable for desktop and mobile browsers.
+If your database already points to assets/images/products/*.jpg, no SQL change is needed.
+If needed, re-import database/watch_store.sql.
